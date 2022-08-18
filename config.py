@@ -10,8 +10,8 @@ class Config(object):
 
 
 class DevelopmentConfig(Config):
-    DEBUG = False
-    SQLALCHEMY_ECHO = True
+    DEBUG = True
+    SQLALCHEMY_ECHO = False
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     SQLALCHEMY_BINDS = {
@@ -20,10 +20,13 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
-    DEBUG = False
+    DEBUG = True
     SQLALCHEMY_ECHO = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
+    SQLALCHEMY_BINDS = {
+        'db2': os.environ.get("SQLALCHEMY_DATABASE_TTCT")
+    }
 
 
 app_config = {
