@@ -572,7 +572,7 @@ class ObjectCT(db.Model):
     WordCount = db.Column(db.Integer)
     ZoneId = db.Column(db.BigInteger)
     isOld = db.Column(db.Integer)
-    LastModifiedDateTimestamp = db.Column(db.BigInteger) ### Primary sorter
+    LastModifiedDateTimestamp = db.Column(db.BigInteger)  ### Primary sorter
 
     def __init__(self, isOld, ZoneId, WordCount, Url, Type, Title, ThreadId, TagSubTitleId, TagPrimary, TagItem, Tag,
                  SubTitle,
@@ -706,7 +706,7 @@ class ObjectC(db.Model):
     WordCount = db.Column(db.Integer)
     ZoneId = db.Column(db.BigInteger)
     isOld = db.Column(db.Integer)
-    LastModifiedDateTimestamp = db.Column(db.BigInteger) ### Primary sorter
+    LastModifiedDateTimestamp = db.Column(db.BigInteger)  ### Primary sorter
 
     def __init__(self, isOld, ZoneId, WordCount, Url, Type, Title, ThreadId, TagSubTitleId, TagPrimary, TagItem, Tag,
                  SubTitle,
@@ -777,3 +777,49 @@ class ObjectC(db.Model):
         self.LastModifiedDate = LastModifiedDate
         self.KeywordFocus = KeywordFocus
         self.LastModifiedDateTimestamp = LastModifiedDateTimestamp
+
+
+class ObjectRelateCT(db.Model):
+    __tablename__ = "ct_object_relate"
+    Id = db.Column(db.Integer, primary_key=True, unique=True)
+    ArticleId = db.Column(db.BigInteger, index=True)
+    PartnerId = db.Column(db.BigInteger, index=True)  ## relate object
+
+    def __init__(self, PartnerId, ArticleId):
+        self.ArticleId = ArticleId
+        self.PartnerId = PartnerId
+
+
+class ObjectRelateC(db.Model):
+    __tablename__ = "c_object_relate"
+    __bind_key__ = "db2"
+    Id = db.Column(db.Integer, primary_key=True, unique=True)
+    ArticleId = db.Column(db.BigInteger, index=True)
+    PartnerId = db.Column(db.BigInteger, index=True)  ## relate object
+
+    def __init__(self, PartnerId, ArticleId):
+        self.ArticleId = ArticleId
+        self.PartnerId = PartnerId
+
+
+class TermRelateCT(db.Model):
+    __tablename__ = "ct_term_relate"
+    Id = db.Column(db.Integer, primary_key=True, unique=True)
+    PartnerId = db.Column(db.BigInteger, index=True)
+    ArticleId = db.Column(db.BigInteger, index=True)
+
+    def __init__(self, PartnerId, ArticleId):
+        self.PartnerId = PartnerId
+        self.ArticleId = ArticleId
+
+
+class TermRelateC(db.Model):
+    __tablename__ = "c_term_relate"
+    __bind_key__ = "db2"
+    Id = db.Column(db.Integer, primary_key=True, unique=True)
+    PartnerId = db.Column(db.BigInteger, index=True)
+    ArticleId = db.Column(db.BigInteger, index=True)
+
+    def __init__(self, PartnerId, ArticleId):
+        self.PartnerId = PartnerId
+        self.ArticleId = ArticleId

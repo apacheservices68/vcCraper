@@ -15,7 +15,7 @@ from flask import Blueprint
 from app import db
 from app.models import TermC, TermCT, TagC, TagCT, TagRelateC, TagRelateCT, TopicC, TopicCT, ThreadC, ThreadCT, \
     ResourceRelateCT, ResourceRelateC, ResourceC, ResourceCT, ThreadRelateC, ThreadRelateCT, TopicRelateC, \
-    TopicRelateCT, AuthorCT, AuthorC, AuthorRelateCT, AuthorRelateC, ObjectCT, ObjectC
+    TopicRelateCT, AuthorCT, AuthorC, AuthorRelateCT, AuthorRelateC, ObjectCT, ObjectC, ObjectRelateC, ObjectRelateCT, TermRelateCT, TermRelateC
 
 bd = Blueprint('import', __name__)
 
@@ -66,6 +66,7 @@ def getLst(cat, size, fr, to):
         "catid": cat,
         "size": size,
         "page": 0,
+        'order': 'desc',
         "frdate": fr,
         "todate": to,
     }
@@ -137,34 +138,23 @@ def buildLst(cat, size, fr, to):
 
 
 @bd.cli.command('tag')
-@click.argument('type')
 @click.argument('cat')
 @click.argument('size')
 @click.argument('fr')
 @click.argument('to')
-def buildTag(type, cat, size, fr, to):
+def buildTag(cat, size, fr, to):
     try:
-        api_url = os.environ.get('MAIN_API') + '/sharelistnews'
+        print("====================================================================================")
         range = getFrToPam(fr, to)
-        myobj = {
-            "seckey": os.environ.get('seckey'),
-            "catid": cat,
-            "size": size,
-            "page": 0,
-            "frdate": range["fr"],
-            "todate": range["to"],
-        }
-        response = requests.post(api_url, data=myobj)
-        json_response = json.loads(response.text)
+        json_response = getLst(cat, size, range['fr'], range['to'])
         tagValueList = []
         for idx, val in enumerate(json_response):
-            # print(val['NewsId'], val['Title'])
             #################### Tag Handler #####################
             if val['Tag'] != "":
                 parse = json.loads(val['Tag'])
                 for i, v in enumerate(parse):
                     tmp = dict(PartnerId=v['Id'], Name=v['Name'], Url=v['Url'])
-                    if type == 'ttc':
+                    if cat == 'ttc':
                         q = TagC.query.filter_by(Url=v['Url'], PartnerId=v['Id']).first()
                     else:
                         q = TagCT.query.filter_by(Url=v['Url'], PartnerId=v['Id']).first()
@@ -176,32 +166,34 @@ def buildTag(type, cat, size, fr, to):
         for i in tagValueList:
             if i not in result:
                 result.append(i)
+        if len(result) == 0:
+            print("[m] No more tags.")
+            exit()
         ### Calculate size of results
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(result) / default)
         chunker = numpy.array_split(result, size)
-        counter = 0
         ### Insert list of dict to database
         for i, v in enumerate(chunker):
-            print("[m] Step %d \n [m]Total %d\n", i, len(v))
-            if type == 'ttc':
+            print("[m] Step %d \n[m]Total %d"% (i, len(v)))
+            if cat == 'ttc':
                 db.session.bulk_insert_mappings(TagC, v)
             else:
                 db.session.bulk_insert_mappings(TagCT, v)
         db.session.commit()
-        print("[m] Inserted tag done.")
+        print("[m] Insert total %d tag" % len(result))
     except Exception as e:
         print(e)
 
 
 @bd.cli.command('tag-relate')
-@click.argument('type')
 @click.argument('cat')
 @click.argument('size')
 @click.argument('fr')
 @click.argument('to')
-def buildTagRelate(type, cat, size, fr, to):
+def buildTagRelate(cat, size, fr, to):
     try:
+        print("====================================================================================")
         api_url = os.environ.get('MAIN_API') + '/sharelistnews'
         range = getFrToPam(fr, to)
         myobj = {
@@ -222,7 +214,7 @@ def buildTagRelate(type, cat, size, fr, to):
                 parse = json.loads(val['Tag'])
                 for i, v in enumerate(parse):
                     tmp = dict(PartnerId=v['Id'], ArticleId=val['NewsId'], Url=v['Url'])
-                    if type == 'ttc':
+                    if cat == 'ttc':
                         q = TagRelateC.query.filter_by(Url=v['Url'], ArticleId=val['NewsId']).all()
                     else:
                         q = TagRelateCT.query.filter_by(Url=v['Url'], ArticleId=val['NewsId']).all()
@@ -244,13 +236,13 @@ def buildTagRelate(type, cat, size, fr, to):
         counter = 0
         ### Insert list of dict to database
         for i, v in enumerate(chunker):
-            print("[m] Step %d \n[m]Total %d\n" % (i, len(v)))
-            if type == 'ttc':
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
+            if cat == 'ttc':
                 db.session.bulk_insert_mappings(TagRelateC, v)
             else:
                 db.session.bulk_insert_mappings(TagRelateCT, v)
         db.session.commit()
-        print("[m] Inserted tag done.")
+        print("[m] Insert total %d tag relate" % len(result))
     except Exception as e:
         print(e)
 
@@ -262,12 +254,12 @@ def buildTagRelate(type, cat, size, fr, to):
 @click.argument('to')
 def buildResources(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         valueList = []
         # replList = ["//cdn.tuoitre.vn", "tuoitre","https\:\/\/cdn.tuoitre.vn"]
         for idx, val in enumerate(json_response):
-
             ### Handle avatar ###
             listAvatar = [
                 val['Avatar'],
@@ -286,7 +278,6 @@ def buildResources(cat, size, fr, to):
                     # v = "/" + v
                     valueList.append(v)
             ######################
-
             regex = r"([\/\w+.])+([\/\d+.])+([\w\s_\\.\-\(\):])+(.jpg|.mp4|.jpeg|.gif|.mpg|.mp3|.mov|.wav|.m4a)"
             matches = re.finditer(regex, val['Body'], re.MULTILINE)
             for matchNum, match in enumerate(matches, start=1):
@@ -327,7 +318,7 @@ def buildResources(cat, size, fr, to):
             result.append(tmp)
         ### Insert list of dict to database
         if len(result) == 0:
-            print("[m] No one.")
+            print("[m] No more resources.")
             exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(result) / default)
@@ -340,12 +331,12 @@ def buildResources(cat, size, fr, to):
             else:
                 db.session.bulk_insert_mappings(ResourceCT, v)
         db.session.commit()
-        print("[m] Inserted resources done.")
+        print("[m] Insert total %d resources" % len(valueList))
     except Exception as e:
-        tb = sys.exc_info()[2]
-        print(e.with_traceback(tb))
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        print(e.with_traceback(tb))
 
 
 @bd.cli.command('resource-relate')
@@ -355,6 +346,7 @@ def buildResources(cat, size, fr, to):
 @click.argument('to')
 def buildResourceRelate(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         result = []
@@ -420,33 +412,10 @@ def buildResourceRelate(cat, size, fr, to):
                     continue
                 t = dict(ArticleId=val['NewsId'], ExtraParams=None, Path=v)
                 result.append(t)
-        # print(result)
-
         ######################
-        # print("\n")
-        ### Remove duplicate dict from list
-        # valueList = unique(valueList)
-        # result = []
-        # for i in valueList:
-        #     i = re.sub(r"[\/]{2,}", "/", i)
-        #     if os.path.isfile(i):
-        #         continue
-        #     if cat == 'ttc':
-        #         q = ResourceC.query.filter_by(Path=i).first()
-        #     else:
-        #         q = ResourceCT.query.filter_by(Path=i).first()
-        #     if q is not None:
-        #         continue
-        #     i = i.strip()  ## whitespace
-        #     if i == "" and len(i) > 250:
-        #         continue
-        #
-        #     tmp = dict(Path=i)
-        #     result.append(tmp)
-        # ### Insert list of dict to database
-        # if len(result) == 0:
-        #     print("[m] No one.")
-        #     exit()
+        if len(result) == 0:
+            print("[m] No more resources.")
+            exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(result) / default)
         chunker = numpy.array_split(result, size)
@@ -458,18 +427,19 @@ def buildResourceRelate(cat, size, fr, to):
             else:
                 db.session.bulk_insert_mappings(ResourceRelateCT, v)
         db.session.commit()
-        print("[m] Inserted resource relate done.")
+        print("[m] Insert total %d resource related" % len(result))
     except Exception as e:
-        tb = sys.exc_info()[2]
-        print(e.with_traceback(tb))
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        print(e.with_traceback(tb))
 
 
 @bd.cli.command('cat')
 @click.argument('type')
 def buildCats(type):
     try:
+        print("====================================================================================")
         api_url = os.environ.get('MAIN_API') + '/sharecate'
         myobj = {
             "seckey": os.environ.get('seckey'),
@@ -494,14 +464,16 @@ def buildCats(type):
             if q is not None:
                 continue
             valueList.append(tmp)
-            # break
-        print(valueList)
+        # print(valueList)
+        if len(valueList) == 0:
+            print("[m] No more cats.")
+            exit()
         if type == 'ttc':
             db.session.bulk_insert_mappings(TermC, valueList)
         else:
             db.session.bulk_insert_mappings(TermCT, valueList)
         db.session.commit()
-        print("Insert cat list done!")
+        print("[m] Insert total %d cats" % len(valueList))
     except Exception as e:
         print(e)
         db.session.rollback()
@@ -512,6 +484,7 @@ def buildCats(type):
 @click.argument('type')
 def buildTopics(type):
     try:
+        print("====================================================================================")
         api_url = os.environ.get('MAIN_API') + '/sharelisttopic'
         myobj = {
             "seckey": os.environ.get('seckey'),
@@ -539,12 +512,15 @@ def buildTopics(type):
             valueList.append(tmp)
             # break
         # print(valueList)
+        if len(valueList) == 0:
+            print("[m] No more topics.")
+            exit()
         if type == 'ttc':
             db.session.bulk_insert_mappings(TopicC, valueList)
         else:
             db.session.bulk_insert_mappings(TopicCT, valueList)
         db.session.commit()
-        print("Insert topic list done!")
+        print("[m] Insert total %d topic" % len(valueList))
     except Exception as e:
         print(e)
         db.session.rollback()
@@ -556,8 +532,9 @@ def buildTopics(type):
 @click.argument('size')
 @click.argument('fr')
 @click.argument('to')
-def buildTopicRelate(cat, size, fr, to, ):
+def buildTopicRelate(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         listTop = valueList = []
@@ -590,7 +567,7 @@ def buildTopicRelate(cat, size, fr, to, ):
             ##############################
         ### Calculate size of results ###
         if len(valueList) == 0:
-            print("[m] No one data.")
+            print("[m] No more topic relate.")
             exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(valueList) / default)
@@ -598,14 +575,14 @@ def buildTopicRelate(cat, size, fr, to, ):
         # print(chunker)
         ### Insert list of dict to database
         for i, v in enumerate(chunker):
-            print("[m] Step %d \n[m]Total %d\n" % (i, len(v)))
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
             if type == 'ttc':
                 db.session.bulk_insert_mappings(TopicRelateC, v)
             else:
                 db.session.bulk_insert_mappings(TopicRelateCT, v)
         db.session.commit()
         ####################################
-        print("[m] Inserted topic done.")
+        print("[m] Insert total %d topic related." % len(valueList))
     except Exception as e:
         print(e)
 
@@ -614,6 +591,7 @@ def buildTopicRelate(cat, size, fr, to, ):
 @click.argument('type')
 def buildThreads(type):
     try:
+        print("====================================================================================")
         api_url = os.environ.get('MAIN_API') + '/sharelistthread'
         myobj = {
             "seckey": os.environ.get('seckey'),
@@ -648,21 +626,21 @@ def buildThreads(type):
             if q is not None:
                 continue
             valueList.append(tmp)
-            # if idx == 9:
-            #     break
         # print(valueList)
+        if len(valueList) == 0:
+            print("[m] No more threads.")
+            exit()
         if type == 'ttc':
             db.session.bulk_insert_mappings(ThreadC, valueList)
         else:
             db.session.bulk_insert_mappings(ThreadCT, valueList)
         db.session.commit()
-        print("Insert thread list done!")
+        print("[m] Insert total %d threads" % len(valueList))
     except Exception as e:
-        # tb = sys.exc_info()[2]
-        # raise e.with_traceback(tb)
-        print(e)
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
 
 
 @bd.cli.command('thread-relate')
@@ -672,6 +650,7 @@ def buildThreads(type):
 @click.argument('to')
 def buildThreadRelate(cat, size, fr, to, ):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         listTop = valueList = []
@@ -706,26 +685,26 @@ def buildThreadRelate(cat, size, fr, to, ):
             ##############################
         ### Calculate size of results ###
         if len(valueList) == 0:
-            print("[m] No one data.")
+            print("[m] No more data.")
             exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(valueList) / default)
         chunker = numpy.array_split(valueList, size)
         ### Insert list of dict to database
         for i, v in enumerate(chunker):
-            print("[m] Step %d \n[m]Total %d\n" % (i, len(v)))
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
             if type == 'ttc':
                 db.session.bulk_insert_mappings(ThreadRelateC, v)
             else:
                 db.session.bulk_insert_mappings(ThreadRelateCT, v)
         db.session.commit()
         ####################################
-        print("[m] Inserted thread done.")
+        print("[m] Insert total %d thread relate" % len(valueList))
     except Exception as e:
-        tb = sys.exc_info()[2]
-        print(e.with_traceback(tb))
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
 
 
 @bd.cli.command('author')
@@ -735,6 +714,7 @@ def buildThreadRelate(cat, size, fr, to, ):
 @click.argument('to')
 def buildAuthors(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         valueList = []
@@ -754,18 +734,21 @@ def buildAuthors(cat, size, fr, to):
                 continue
             valueList.append(tmp)
             # break
+        if len(valueList) == 0:
+            print("[m] No more authors.")
+            exit()
         valueList = unique(valueList)
         if cat == 'ttc':
             db.session.bulk_insert_mappings(AuthorC, valueList)
         else:
             db.session.bulk_insert_mappings(AuthorCT, valueList)
-        print("[m]Total %d\n" % len(valueList))
         db.session.commit()
-        print("Insert author list done!")
+        print("[m]Total %d\n author." % len(valueList))
     except Exception as e:
-        print(e)
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
 
 
 @bd.cli.command('author-relate')
@@ -775,6 +758,7 @@ def buildAuthors(cat, size, fr, to):
 @click.argument('to')
 def buildAuthorRelate(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         listTop = valueList = []
@@ -806,26 +790,26 @@ def buildAuthorRelate(cat, size, fr, to):
         ### Calculate size of results ###
         valueList = unique(valueList)
         if len(valueList) == 0:
-            print("[m] No one data.")
+            print("[m] No more authors relate.")
             exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(valueList) / default)
         chunker = numpy.array_split(valueList, size)
         ### Insert list of dict to database
         for i, v in enumerate(chunker):
-            print("[m] Step %d \n[m]Total %d\n" % (i, len(v)))
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
             if cat == 'ttc':
                 db.session.bulk_insert_mappings(AuthorRelateC, v)
             else:
                 db.session.bulk_insert_mappings(AuthorRelateCT, v)
         db.session.commit()
         ####################################
-        print("[m] Inserted thread done.")
+        print("[m]Total %d authors relate." % len(valueList))
     except Exception as e:
-        tb = sys.exc_info()[2]
-        print(e.with_traceback(tb))
         db.session.rollback()
         print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
 
 
 @bd.cli.command('object')
@@ -835,6 +819,7 @@ def buildAuthorRelate(cat, size, fr, to):
 @click.argument('to')
 def buildObject(cat, size, fr, to):
     try:
+        print("====================================================================================")
         range = getFrToPam(fr, to)
         json_response = getLst(cat, size, range['fr'], range['to'])
         valueList = []
@@ -850,25 +835,31 @@ def buildObject(cat, size, fr, to):
             KeywordFocus = val.get('KeywordFocus', "")
             AllVideo = val.get('AllVideo', [])
             tmp = dict(isOld=val['isOld'], ZoneId=val['ZoneId'], WordCount=val['WordCount'], Url=val['Url'],
-                       Type=val['Type'], Title=val['Title'], ThreadId=val['ThreadId'], TagSubTitleId=val['TagSubTitleId'],
-                       TagPrimary=val['TagPrimary'], TagItem=val['TagItem'], Tag=json.dumps(val['Tag']), SubTitle=val['SubTitle'],
+                       Type=val['Type'], Title=val['Title'], ThreadId=val['ThreadId'],
+                       TagSubTitleId=val['TagSubTitleId'],
+                       TagPrimary=val['TagPrimary'], TagItem=val['TagItem'], Tag=json.dumps(val['Tag']),
+                       SubTitle=val['SubTitle'],
                        SourceUrl=val['SourceUrl'], Source=val['Source'], SocialTitle=SocialTitle, Sapo=val['Sapo'],
                        RollingNewsId=val['RollingNewsId'], PrPosition=val['PrPosition'], Position=val['Position'],
                        ParentNewsId=val['ParentNewsId'], OriginalUrl=val['OriginalUrl'], OriginalId=val['OriginalId'],
                        NewsType=val['NewsType'], NewsRelation=val['NewsRelation'], MetaTitle=MetaTitle,
                        MetaNewsKeyword=MetaNewsKeyword, MetaKeyword=MetaKeyword, MetaDescription=MetaDescription,
-                       LocationType=val['LocationType'], LastModifiedDate=val['LastModifiedDate'], KeywordFocus=KeywordFocus,
+                       LocationType=val['LocationType'], LastModifiedDate=val['LastModifiedDate'],
+                       KeywordFocus=KeywordFocus,
                        IsOnHome=val['IsOnHome'], InterviewId=val['InterviewId'], InitSapo=val['InitSapo'],
                        ExtentionValue=json.dumps(val['ExtentionValue']), ExtentionType=json.dumps(val['ExtentionType']),
-                       Extention=json.dumps(Extension), ExpiredDate=val['ExpiredDate'], DistributionDate=val['DistributionDate'],
+                       Extention=json.dumps(Extension), ExpiredDate=val['ExpiredDate'],
+                       DistributionDate=val['DistributionDate'],
                        DisplayInSlide=val['DisplayInSlide'], Body=val['Body'], AvatarDesc=val['AvatarDesc'],
                        Avatar5=val['Avatar5'], Avatar4=val['Avatar4'], Avatar3=val['Avatar3'], Avatar2=val['Avatar2'],
                        Avatar=val['Avatar'], AuthorUrl=val['AuthorUrl'], AuthorId=val['AuthorId'], Author=val['Author'],
-                       AllZone=json.dumps(val['AllZone']), AllTopic=json.dumps(val['AllTopic']), AllThread=json.dumps(val['AllThread']),
-                       AdStoreUrl=val['AdStoreUrl'], AdStore=val['AdStore'], PartnerId=val['NewsId'], AllVideo=json.dumps(AllVideo),
+                       AllZone=json.dumps(val['AllZone']), AllTopic=json.dumps(val['AllTopic']),
+                       AllThread=json.dumps(val['AllThread']),
+                       AdStoreUrl=val['AdStoreUrl'], AdStore=val['AdStore'], PartnerId=val['NewsId'],
+                       AllVideo=json.dumps(AllVideo),
                        LastModifiedDateTimestamp=LastModifiedDateTimestamp)
             if cat == 'ttc':
-                q = ObjectCT.query.filter_by(PartnerId=val['NewsId']).first()
+                q = ObjectC.query.filter_by(PartnerId=val['NewsId']).first()
             else:
                 q = ObjectCT.query.filter_by(PartnerId=val['NewsId']).first()
             if q is not None:
@@ -877,7 +868,7 @@ def buildObject(cat, size, fr, to):
         ### Calculate size of results ###
         valueList = unique(valueList)
         if len(valueList) == 0:
-            print("[m] No one data.")
+            print("[m] No more objects.")
             exit()
         default = int(os.environ.get('CHUNK_SIZE'))
         size = math.ceil(len(valueList) / default)
@@ -890,7 +881,114 @@ def buildObject(cat, size, fr, to):
             else:
                 db.session.bulk_insert_mappings(ObjectCT, v)
         db.session.commit()
-        print("Insert object list done!")
+        print("[m] Inserted total %d objects." % len(valueList))
+    except Exception as e:
+        db.session.rollback()
+        print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
+
+
+@bd.cli.command('object-relate')
+@click.argument('cat')
+@click.argument('size')
+@click.argument('fr')
+@click.argument('to')
+def buildObjectRelate(cat, size, fr, to):
+    try:
+        print("====================================================================================")
+        range = getFrToPam(fr, to)
+        json_response = getLst(cat, size, range['fr'], range['to'])
+        valueList = []
+        for idx, val in enumerate(json_response):
+            ### Handler exist records ###
+            if cat == 'ttc':
+                q = ObjectRelateC.query.filter_by(ArticleId=val['NewsId']).all()
+            else:
+                q = ObjectRelateCT.query.filter_by(ArticleId=val['NewsId']).all()
+            # Delete old relationship by article id
+            if q:
+                for qi, qv in enumerate(q):
+                    db.session.delete(q[qi])
+                db.session.commit()
+            ##############################
+            test = json.loads(val['NewsRelation'])
+            if len(test) > 0:
+                # print(val['NewsRelation'])
+                for i, v in enumerate(test):
+                    tmp = dict(ArticleId=val['NewsId'], PartnerId=v['NewsId'])
+                    valueList.append(tmp)
+        # ### Calculate size of results ###
+        valueList = unique(valueList)
+        if len(valueList) == 0:
+            print("[m] No more object related.")
+            exit()
+        default = int(os.environ.get('CHUNK_SIZE'))
+        size = math.ceil(len(valueList) / default)
+        chunker = numpy.array_split(valueList, size)
+        # ### Insert list of dict to database
+        for i, v in enumerate(chunker):
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
+            if cat == 'ttc':
+                db.session.bulk_insert_mappings(ObjectRelateC, v)
+            else:
+                db.session.bulk_insert_mappings(ObjectRelateCT, v)
+        db.session.commit()
+        ####################################
+        print("[m] Inserted total %d objects related." % len(valueList))
+    except Exception as e:
+        db.session.rollback()
+        print(" [x] Fail")
+        tb = sys.exc_info()[2]
+        raise e.with_traceback(tb)
+
+
+@bd.cli.command('term-relate')
+@click.argument('cat')
+@click.argument('size')
+@click.argument('fr')
+@click.argument('to')
+def buildTermRelate(cat, size, fr, to):
+    try:
+        print("====================================================================================")
+        range = getFrToPam(fr, to)
+        json_response = getLst(cat, size, range['fr'], range['to'])
+        valueList = []
+        for idx, val in enumerate(json_response):
+            ### Handler exist records ###
+            if cat == 'ttc':
+                q = TermRelateC.query.filter_by(ArticleId=val['NewsId']).all()
+            else:
+                q = TermRelateCT.query.filter_by(ArticleId=val['NewsId']).all()
+            # Delete old relationship by article id
+            if q:
+                for qi, qv in enumerate(q):
+                    db.session.delete(q[qi])
+                db.session.commit()
+            ##############################
+            if len(val['AllZone']) > 0:
+                for i, v in enumerate(val['AllZone']):
+                    tmp = dict(ArticleId=val['NewsId'], PartnerId=v)
+                    valueList.append(tmp)
+        # ### Calculate size of results ###
+        valueList = unique(valueList)
+        if len(valueList) == 0:
+            print("[m] No more term relate.")
+            exit()
+        default = int(os.environ.get('CHUNK_SIZE'))
+        size = math.ceil(len(valueList) / default)
+        chunker = numpy.array_split(valueList, size)
+        # print(chunker)
+        # # ### Insert list of dict to database
+        for i, v in enumerate(chunker):
+            print("[m] Step %d \n[m]Total %d" % (i, len(v)))
+            if cat == 'ttc':
+                db.session.bulk_insert_mappings(TermRelateC, v)
+            else:
+                db.session.bulk_insert_mappings(TermRelateCT, v)
+        db.session.commit()
+        ####################################
+        print("[m] Insert total %d term relate." % len(valueList))
     except Exception as e:
         db.session.rollback()
         print(" [x] Fail")
