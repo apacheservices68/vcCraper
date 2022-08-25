@@ -12,13 +12,9 @@ then
         # shellcheck disable=SC1090
         . "${PROFILE}"
     fi
-    sleep 1
+    /bin/sleep 1
 fi
-CURRENT=$(/bin/pwd)
-PROFILE="$(/bin/dirname "${CURRENT}")/.env"
-# shellcheck disable=SC1090
-. "${PROFILE}"
-echo $PROFILE
+
 # Init logging
 LOG_PATH="${LOG_PATH_TTC}ttct"$(/bin/date +"%Y%m%d".log)
 # shellcheck disable=SC1073
