@@ -1,10 +1,10 @@
 #!/bin/sh
 ############# Defining && Checking ###############
-PATH=${ROOT_DIR}
+SPATH=${ROOT_DIR}
 MAIN_EVENT="ttct"
-if [ -z "$PATH" ]
+if [ -z "$SPATH" ]
 then
-    echo "\$PATH is empty , initializing env .."
+    echo "\$SPATH is empty , initializing env .."
     if [ -f ../.env ]; then
         CURRENT=$(/bin/pwd)
         PARENT="$(/bin/dirname "${CURRENT}")"
@@ -31,7 +31,7 @@ else
 fi
 ############ Run script ############
 # shellcheck disable=SC2164
-cd "${PATH}"
+cd "${SPATH}"
 # shellcheck disable=SC1090
 . "${VIRTUAL_ENV}"
 ## Cat
