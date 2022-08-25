@@ -11,6 +11,7 @@ then
         PROFILE="${PARENT}/.env"
         # shellcheck disable=SC1090
         . "${PROFILE}"
+        echo "current PATH variable is: ${SPATH}"
     fi
     /bin/sleep 1
 fi
