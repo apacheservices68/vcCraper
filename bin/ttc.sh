@@ -11,7 +11,7 @@ echo "current SPATH variable is: ${ROOT_DIR}"
 SPATH=${ROOT_DIR}
 
 # Init logging
-LOG_PATH="${LOG_PATH_TTC}ttc"$(/bin/date +"%Y%m%d".log)
+LOG_PATH="${LOG_PATH_TTC}${MAIN_EVENT}"$(/bin/date +"%Y%m%d".log)
 # shellcheck disable=SC1073
 if [ ! -f "${LOG_PATH}" ]; then
     echo "$LOG_PATH does not exist. Creating $LOG_PATH .."

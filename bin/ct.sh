@@ -1,23 +1,17 @@
 #!/bin/sh
 ############# Defining && Checking ###############
-SPATH=${ROOT_DIR}
 MAIN_EVENT="ttct"
-if [ -z "$SPATH" ]
-then
-    echo "\$SPATH is empty , initializing env .."
-    if [ -f ../.env ]; then
-        CURRENT=$(/bin/pwd)
-        PARENT="$(/bin/dirname "${CURRENT}")"
-        PROFILE="${PARENT}/.env"
-        # shellcheck disable=SC1090
-        . "${PROFILE}"
-        echo "current PATH variable is: ${SPATH}"
-    fi
-    /bin/sleep 1
-fi
+echo "Initializing env .."
+CURRENT=$(/bin/pwd)
+PARENT="$(/bin/dirname "${CURRENT}")"
+PROFILE="${PARENT}/.env"
+# shellcheck disable=SC1090
+. "${PROFILE}"
+echo "current SPATH variable is: ${ROOT_DIR}"
+SPATH=${ROOT_DIR}
 
 # Init logging
-LOG_PATH="${LOG_PATH_TTC}ttct"$(/bin/date +"%Y%m%d".log)
+LOG_PATH="${LOG_PATH_TTC}${MAIN_EVENT}"$(/bin/date +"%Y%m%d".log)
 # shellcheck disable=SC1073
 if [ ! -f "${LOG_PATH}" ]; then
     echo "$LOG_PATH does not exist. Creating $LOG_PATH .."
@@ -59,3 +53,4 @@ flask import object-relate "${MAIN_EVENT}" "${SCRAP_LIMIT}" "${SCRAP_RANGE_BY_DA
 ## Done task
 deactivate
 echo "Completed task TTCT"
+
