@@ -20,8 +20,12 @@ def create_app(config_name):
     logging.basicConfig(level=logging.DEBUG)
     from app import models
     from app import cmd
+    from app import pub
+    from app import wk
     from . import endpoint
     # apply the blueprints to the app
     app.register_blueprint(endpoint.api)
     app.register_blueprint(cmd.bd)
+    app.register_blueprint(pub.pub)
+    app.register_blueprint(wk.wk)
     return app
