@@ -17,7 +17,7 @@ def create_app(config_name):
     db.init_app(app)
     migrate = Migrate(app, db)
     # init logging
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     from app import models
     from app import cmd
     from app import pub
