@@ -22,10 +22,12 @@ def create_app(config_name):
     from app import cmd
     from app import pub
     from app import wk
+    from app import reporter
     from . import endpoint
     # apply the blueprints to the app
     app.register_blueprint(endpoint.api)
     app.register_blueprint(cmd.bd)
     app.register_blueprint(pub.pub)
     app.register_blueprint(wk.wk)
+    app.register_blueprint(reporter.bd)
     return app
