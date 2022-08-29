@@ -147,7 +147,7 @@ def get(cat, size, fr, to):
             for matchNum, match in enumerate(matches, start=1):
                 tmp = dict(Domain=getDomain(v), Path=match.group(2) + match.group(3), Filename=match.group(4))
                 sender(getDomain(v), match.group(2) + match.group(3), match.group(4), cat)
-                break
+                # break
                 # print(saveTo(tmp, cat))
                 # newValueList.append(tmp)
         # print(newValueList)
