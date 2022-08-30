@@ -49,12 +49,15 @@ def saveTo(infos, cat):
         os.makedirs(path, mode=0o755, exist_ok=False)
         print("[m] Created folder : ", path)
     r = requests.get(url, stream=True)
-    if r.status_code != 200:
-        print("[m] Url does not exist - ", url)
-    with open(filePath, "wb") as f:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:
-                f.write(chunk)
+    if r.status_code == 404:
+        print("[m][404] Url does not exist - not found", url)
+    if r.status_code == 302:
+        print("[m][302] Url does not exist - redirect", url)
+    if r.status_code == 200:
+        with open(filePath, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
 
 
 @wk.cli.command("worker")
