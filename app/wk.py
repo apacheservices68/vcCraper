@@ -33,6 +33,12 @@ def callback(ch, method, properties, body):
 def saveTo(infos, cat):
     url = infos['Domain'] + infos['Path'] + infos['Filename']
     # print(url)
+    y = re.search("^.*mp3$", infos['Path'])
+    if y:
+        x = re.search("^\/?tto\/r.*$", infos['Path'])
+        if x:
+            infos['Path'] = "/tto/r/" + infos['Path']
+    url = infos['Domain'] + infos['Path'] + infos['Filename']
     path = re.sub(r"\/\/", r"/", os.environ.get("RESOURCE_PATH") + cat + infos['Path'])
     filePath = path + infos['Filename']
     if os.path.exists(filePath):
@@ -49,7 +55,6 @@ def saveTo(infos, cat):
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
-
 
 
 @wk.cli.command("worker")
