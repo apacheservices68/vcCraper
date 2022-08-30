@@ -32,13 +32,6 @@ def callback(ch, method, properties, body):
 
 def saveTo(infos, cat):
     url = infos['Domain'] + infos['Path'] + infos['Filename']
-    # print(url)
-    y = re.search("^.*mp3$", infos['Filename'])
-    if y:
-        x = re.search("^\/?tto\/r.*$", infos['Path'])
-        if x:
-            infos['Path'] = "/tto/r" + infos['Path']
-    url = infos['Domain'] + infos['Path'] + infos['Filename']
     path = re.sub(r"\/\/", r"/", os.environ.get("RESOURCE_PATH") + cat + infos['Path'])
     filePath = path + infos['Filename']
     if os.path.exists(filePath):

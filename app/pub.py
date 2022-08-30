@@ -145,13 +145,19 @@ def get(cat, size, fr, to):
             test_str = re.sub(r"\/\/", r"/", "/" + v)
             matches = re.finditer(regex, test_str, re.MULTILINE)
             for matchNum, match in enumerate(matches, start=1):
-                tmp = dict(Domain=getDomain(v), Path=match.group(2) + match.group(3), Filename=match.group(4))
-                sender(getDomain(v), match.group(2) + match.group(3), match.group(4), cat)
-                #break
-                # print(saveTo(tmp, cat))
-                # newValueList.append(tmp)
-        # print(newValueList)
-
+                do = getDomain(v)
+                path = match.group(2) + match.group(3)
+                ###################################################
+                ### Recheck old static
+                y = re.search("^.*mp3$", match.group(4))
+                if y and do == os.environ.get("STATIC_DOMAIN"):
+                    x = re.search("^\/?tto\/r.*$", path)
+                    if not x:
+                        path = "/tto/r" + path
+                        # print(path)
+                ####################################################
+                tmp = dict(Domain=do, Path=path, Filename=match.group(4))
+                sender(getDomain(v), path, match.group(4), cat)
     except Exception as e:
         print(" [x] Fail")
         tb = sys.exc_info()[2]
