@@ -50,6 +50,8 @@ flask import author-relate "${MAIN_EVENT}" "${SCRAP_LIMIT}" "${SCRAP_RANGE_BY_DA
 ## Object
 flask import object "${MAIN_EVENT}" "${SCRAP_LIMIT}" "${SCRAP_RANGE_BY_DAY}" 0 >> "${LOG_PATH}" &
 flask import object-relate "${MAIN_EVENT}" "${SCRAP_LIMIT}" "${SCRAP_RANGE_BY_DAY}" 0 >> "${LOG_PATH}" &
+## Download
+flask dll get "${MAIN_EVENT}" "${SCRAP_LIMIT}" "${SCRAP_RANGE_BY_DAY}" 0 >> "${LOG_PATH}" &
 ## Done task
 deactivate
 echo "Completed task TTC"
