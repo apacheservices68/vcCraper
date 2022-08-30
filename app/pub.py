@@ -259,7 +259,7 @@ def getDomain(path):
         domain = os.environ.get("THUMBS_DOMAIN")
     y = re.search("^.*mp3$", path)
     if y:
-        domain = os.environ.get("STATIC_DOMAIN")
+        domain = os.environ.get("STATIC_DOMAIN")+"/tto/r/"
     return domain
 
 
