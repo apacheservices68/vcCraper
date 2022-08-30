@@ -48,7 +48,7 @@ def saveTo(infos, cat):
     if not CHECK_FOLDER:
         os.makedirs(path, mode=0o755, exist_ok=False)
         print("[m] Created folder : ", path)
-    r = requests.get(url, stream=True)
+    r = requests.get(url, stream=True, allow_redirects=False)
     if r.status_code == 404:
         print("[m][404] Url does not exist - not found", url)
     if r.status_code == 302:
